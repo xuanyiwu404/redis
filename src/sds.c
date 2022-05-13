@@ -120,7 +120,7 @@ sds _sdsnewlen(const void *init, size_t initlen, int trymalloc) {
         init = NULL;
     else if (!init)
         memset(sh, 0, hdrlen+initlen+1);
-    s = (char*)sh+hdrlen;
+    s = (char*)sh+hdrlen;       //这里的s是一个指针，指向的是sds内char数组的内容 --easonywu
     fp = ((unsigned char*)s)-1;
     usable = usable-hdrlen-1;
     if (usable > sdsTypeMaxSize(type))
@@ -252,10 +252,10 @@ sds _sdsMakeRoomFor(sds s, size_t addlen, int greedy) {
     reqlen = newlen = (len+addlen);
     assert(newlen > len);   /* Catch size_t overflow */
     if (greedy == 1) {
-        if (newlen < SDS_MAX_PREALLOC)
+        if (newlen < SDS_MAX_PREALLOC)                              //小于1M，直接分配两倍newlen大小的内存 --easonywu
             newlen *= 2;
         else
-            newlen += SDS_MAX_PREALLOC;
+            newlen += SDS_MAX_PREALLOC;                             //大于等于1M，分配newlen+1M的内存 --easonywu
     }
 
     type = sdsReqType(newlen);
@@ -429,7 +429,7 @@ void *sdsAllocPtr(sds s) {
  * ... check for nread <= 0 and handle it ...
  * sdsIncrLen(s, nread);
  */
-void sdsIncrLen(sds s, ssize_t incr) {
+void sdsIncrLen(sds s, ssize_t incr) {           //从内核中直接复制一部分字节到一个sds字符串的末尾，且无须把数据先复制到一个中间缓冲区中 --easonywu
     unsigned char flags = s[-1];
     size_t len;
     switch(flags&SDS_TYPE_MASK) {
