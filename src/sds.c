@@ -252,10 +252,10 @@ sds _sdsMakeRoomFor(sds s, size_t addlen, int greedy) {
     reqlen = newlen = (len+addlen);
     assert(newlen > len);   /* Catch size_t overflow */
     if (greedy == 1) {
-        if (newlen < SDS_MAX_PREALLOC)                              //小于1M，直接分配两倍newlen大小的内存 --easonywu
+        if (newlen < SDS_MAX_PREALLOC)                              //小于1MB，直接分配两倍newlen大小的内存 --easonywu
             newlen *= 2;
         else
-            newlen += SDS_MAX_PREALLOC;                             //大于等于1M，分配newlen+1M的内存 --easonywu
+            newlen += SDS_MAX_PREALLOC;                             //大于等于1MB，分配newlen+1M的内存 --easonywu
     }
 
     type = sdsReqType(newlen);

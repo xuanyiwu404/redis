@@ -125,7 +125,7 @@ client *createClient(connection *conn) {
      * in the context of a client. When commands are executed in other
      * contexts (for instance a Lua script) we need a non connected client. */
     if (conn) {
-        connEnableTcpNoDelay(conn);
+        connEnableTcpNoDelay(conn);                 //关闭nagle算法，避免第一次写操作的包发送成功，但是对端延迟ack，nagle导致无法发送第二个写操作包，只有对端发送超时ack后才继续发送，造成延迟  --easonywu
         if (server.tcpkeepalive)
             connKeepAlive(conn,server.tcpkeepalive);
         connSetReadHandler(conn, readQueryFromClient);
@@ -2485,7 +2485,7 @@ int processPendingCommandAndInputBuffer(client *c) {
  * or because a client was blocked and later reactivated, so there could be
  * pending query buffer, already representing a full command, to process.
  * return C_ERR in case the client was freed during the processing */
-int processInputBuffer(client *c) {
+int iprocessInputBuffer(client *c) {
     /* Keep processing while there is something in the input buffer */
     while(c->qb_pos < sdslen(c->querybuf)) {
         /* Immediately abort if the client is in the middle of something. */
