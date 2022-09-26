@@ -466,7 +466,7 @@ void debugCommand(client *c) {
 "    default.",
 "QUICKLIST-PACKED-THRESHOLD <size>",
 "    Sets the threshold for elements to be inserted as plain vs packed nodes",
-"    Default value is 1GB, allows values up to 4GB",
+"    Default value is 1GB, allows values up to 4GB. Setting to 0 restores to default.",
 "SET-SKIP-CHECKSUM-VALIDATION <0|1>",
 "    Enables or disables checksum checks for RDB files and RESTORE's payload.",
 "SLEEP <seconds>",
@@ -489,7 +489,7 @@ void debugCommand(client *c) {
 "    In case NEVER is provided the last observed peak will never be reset",
 "    In case RESET is provided the peak reset time will be restored to the default value",
 "REPLYBUFFER RESIZING <0|1>",
-"    Enable or disable the replay buffer resize cron job",
+"    Enable or disable the reply buffer resize cron job",
 NULL
         };
         addReplyHelp(c, help);
@@ -567,8 +567,8 @@ NULL
         protectClient(c);
         int ret = rdbLoad(server.rdb_filename,NULL,flags);
         unprotectClient(c);
-        if (ret != C_OK) {
-            addReplyError(c,"Error trying to load the RDB dump");
+        if (ret != RDB_OK) {
+            addReplyError(c,"Error trying to load the RDB dump, check server logs.");
             return;
         }
         serverLog(LL_WARNING,"DB reloaded by DEBUG RELOAD");
@@ -852,7 +852,7 @@ NULL
         server.aof_flush_sleep = atoi(c->argv[2]->ptr);
         addReply(c,shared.ok);
     } else if (!strcasecmp(c->argv[1]->ptr,"replicate") && c->argc >= 3) {
-        replicationFeedSlaves(server.slaves, server.slaveseldb,
+        replicationFeedSlaves(server.slaves, -1,
                 c->argv + 2, c->argc - 2);
         addReply(c,shared.ok);
     } else if (!strcasecmp(c->argv[1]->ptr,"error") && c->argc == 3) {

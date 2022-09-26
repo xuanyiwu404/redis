@@ -175,7 +175,7 @@ start_server {tags {"acl external:skip"}} {
         set curruser "hpuser"
         foreach user [lshuffle $users] {
             if {[string first $curruser $user] != -1} {
-                assert_equal {user hpuser on nopass resetchannels &foo +@all} $user
+                assert_equal {user hpuser on nopass sanitize-payload resetchannels &foo +@all} $user
             }
         }
 
@@ -383,7 +383,8 @@ start_server {tags {"acl external:skip"}} {
     } {}
 
     test {ACLs including of a type includes also subcommands} {
-        r ACL setuser newuser -@all +acl +@stream
+        r ACL setuser newuser -@all +del +acl +@stream
+        r DEL key
         r XADD key * field value
         r XINFO STREAM key
     }
@@ -395,10 +396,11 @@ start_server {tags {"acl external:skip"}} {
         r SELECT 0
         catch {r SELECT 1} e
         set e
-    } {*NOPERM*select*}
+    } {*NOPERM*select*} {singledb:skip}
 
     test {ACLs can block all DEBUG subcommands except one} {
-        r ACL setuser newuser -@all +acl +incr +debug|object
+        r ACL setuser newuser -@all +acl +del +incr +debug|object
+        r DEL key
         set cmdstr [dict get [r ACL getuser newuser] commands]
         assert_match {*+debug|object*} $cmdstr
         r INCR key
@@ -465,6 +467,27 @@ start_server {tags {"acl external:skip"}} {
 
         # Auth newuser before the next test
         r AUTH newuser passwd1
+    }
+
+    test {ACL SETUSER RESET reverting to default newly created user} {
+        set current_user "example"
+        r ACL DELUSER $current_user
+        r ACL SETUSER $current_user
+
+        set users [r ACL LIST]
+        foreach user [lshuffle $users] {
+            if {[string first $current_user $user] != -1} {
+                set current_user_output $user
+            }
+        }
+
+        r ACL SETUSER $current_user reset
+        set users [r ACL LIST]
+        foreach user [lshuffle $users] {
+            if {[string first $current_user $user] != -1} {
+                assert_equal $current_user_output $user
+            }
+        }
     }
 
     # Note that the order of the generated ACL rules is not stable in Redis
