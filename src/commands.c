@@ -102,7 +102,7 @@ struct redisCommandArg BITFIELD_operation_Subargs[] = {
 /* BITFIELD argument table */
 struct redisCommandArg BITFIELD_Args[] = {
 {"key",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
-{"operation",ARG_TYPE_ONEOF,-1,NULL,NULL,NULL,CMD_ARG_MULTIPLE,.subargs=BITFIELD_operation_Subargs},
+{"operation",ARG_TYPE_ONEOF,-1,NULL,NULL,NULL,CMD_ARG_OPTIONAL|CMD_ARG_MULTIPLE,.subargs=BITFIELD_operation_Subargs},
 {0}
 };
 
@@ -124,7 +124,7 @@ struct redisCommandArg BITFIELD_RO_get_block_Subargs[] = {
 /* BITFIELD_RO argument table */
 struct redisCommandArg BITFIELD_RO_Args[] = {
 {"key",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
-{"get-block",ARG_TYPE_BLOCK,-1,"GET",NULL,NULL,CMD_ARG_MULTIPLE|CMD_ARG_MULTIPLE_TOKEN,.subargs=BITFIELD_RO_get_block_Subargs},
+{"get-block",ARG_TYPE_BLOCK,-1,"GET",NULL,NULL,CMD_ARG_OPTIONAL|CMD_ARG_MULTIPLE|CMD_ARG_MULTIPLE_TOKEN,.subargs=BITFIELD_RO_get_block_Subargs},
 {0}
 };
 
@@ -476,6 +476,17 @@ struct redisCommandArg CLUSTER_MEET_Args[] = {
 /* CLUSTER MYID tips */
 #define CLUSTER_MYID_tips NULL
 
+/********** CLUSTER MYSHARDID ********************/
+
+/* CLUSTER MYSHARDID history */
+#define CLUSTER_MYSHARDID_History NULL
+
+/* CLUSTER MYSHARDID tips */
+const char *CLUSTER_MYSHARDID_tips[] = {
+"nondeterministic_output",
+NULL
+};
+
 /********** CLUSTER NODES ********************/
 
 /* CLUSTER NODES history */
@@ -647,6 +658,7 @@ struct redisCommand CLUSTER_Subcommands[] = {
 {"links","Returns a list of all TCP links to and from peer nodes in cluster","O(N) where N is the total number of Cluster nodes","7.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CLUSTER,CLUSTER_LINKS_History,CLUSTER_LINKS_tips,clusterCommand,2,CMD_STALE,0},
 {"meet","Force a node cluster to handshake with another node","O(1)","3.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CLUSTER,CLUSTER_MEET_History,CLUSTER_MEET_tips,clusterCommand,-4,CMD_NO_ASYNC_LOADING|CMD_ADMIN|CMD_STALE,0,.args=CLUSTER_MEET_Args},
 {"myid","Return the node id","O(1)","3.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CLUSTER,CLUSTER_MYID_History,CLUSTER_MYID_tips,clusterCommand,2,CMD_STALE,0},
+{"myshardid","Return the node shard id","O(1)","7.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CLUSTER,CLUSTER_MYSHARDID_History,CLUSTER_MYSHARDID_tips,clusterCommand,2,CMD_STALE,0},
 {"nodes","Get Cluster config for the node","O(N) where N is the total number of Cluster nodes","3.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CLUSTER,CLUSTER_NODES_History,CLUSTER_NODES_tips,clusterCommand,2,CMD_STALE,0},
 {"replicas","List replica nodes of the specified master node","O(1)","5.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CLUSTER,CLUSTER_REPLICAS_History,CLUSTER_REPLICAS_tips,clusterCommand,3,CMD_ADMIN|CMD_STALE,0,.args=CLUSTER_REPLICAS_Args},
 {"replicate","Reconfigure a node as a replica of the specified master node","O(1)","3.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CLUSTER,CLUSTER_REPLICATE_History,CLUSTER_REPLICATE_tips,clusterCommand,3,CMD_NO_ASYNC_LOADING|CMD_ADMIN|CMD_STALE,0,.args=CLUSTER_REPLICATE_Args},
@@ -828,7 +840,10 @@ struct redisCommandArg CLIENT_KILL_Args[] = {
 commandHistory CLIENT_LIST_History[] = {
 {"2.8.12","Added unique client `id` field."},
 {"5.0.0","Added optional `TYPE` filter."},
-{"6.2.0","Added `laddr` field and the optional `ID` filter."},
+{"6.0.0","Added `user` field."},
+{"6.2.0","Added `argv-mem`, `tot-mem`, `laddr` and `redir` fields and the optional `ID` filter."},
+{"7.0.0","Added `resp`, `multi-mem`, `rbs` and `rbp` fields."},
+{"7.0.3","Added `ssub` field."},
 {0}
 };
 
@@ -1872,7 +1887,7 @@ struct redisCommandArg GEODIST_Args[] = {
 /* GEOHASH argument table */
 struct redisCommandArg GEOHASH_Args[] = {
 {"key",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
-{"member",ARG_TYPE_STRING,-1,NULL,NULL,NULL,CMD_ARG_MULTIPLE},
+{"member",ARG_TYPE_STRING,-1,NULL,NULL,NULL,CMD_ARG_OPTIONAL|CMD_ARG_MULTIPLE},
 {0}
 };
 
@@ -1887,7 +1902,7 @@ struct redisCommandArg GEOHASH_Args[] = {
 /* GEOPOS argument table */
 struct redisCommandArg GEOPOS_Args[] = {
 {"key",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
-{"member",ARG_TYPE_STRING,-1,NULL,NULL,NULL,CMD_ARG_MULTIPLE},
+{"member",ARG_TYPE_STRING,-1,NULL,NULL,NULL,CMD_ARG_OPTIONAL|CMD_ARG_MULTIPLE},
 {0}
 };
 
@@ -2608,7 +2623,7 @@ struct redisCommandArg PFDEBUG_Args[] = {
 /* PFMERGE argument table */
 struct redisCommandArg PFMERGE_Args[] = {
 {"destkey",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
-{"sourcekey",ARG_TYPE_KEY,1,NULL,NULL,NULL,CMD_ARG_MULTIPLE},
+{"sourcekey",ARG_TYPE_KEY,1,NULL,NULL,NULL,CMD_ARG_OPTIONAL|CMD_ARG_MULTIPLE},
 {0}
 };
 
@@ -3706,7 +3721,7 @@ struct redisCommandArg SENTINEL_DEBUG_data_Subargs[] = {
 
 /* SENTINEL DEBUG argument table */
 struct redisCommandArg SENTINEL_DEBUG_Args[] = {
-{"data",ARG_TYPE_BLOCK,-1,NULL,NULL,NULL,CMD_ARG_MULTIPLE,.subargs=SENTINEL_DEBUG_data_Subargs},
+{"data",ARG_TYPE_BLOCK,-1,NULL,NULL,NULL,CMD_ARG_OPTIONAL|CMD_ARG_MULTIPLE,.subargs=SENTINEL_DEBUG_data_Subargs},
 {0}
 };
 
@@ -3957,7 +3972,7 @@ struct redisCommandArg SENTINEL_SLAVES_Args[] = {
 /* SENTINEL command table */
 struct redisCommand SENTINEL_Subcommands[] = {
 {"ckquorum","Check for a Sentinel quorum",NULL,"2.8.4",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SENTINEL,SENTINEL_CKQUORUM_History,SENTINEL_CKQUORUM_tips,sentinelCommand,3,CMD_ADMIN|CMD_SENTINEL|CMD_ONLY_SENTINEL,0,.args=SENTINEL_CKQUORUM_Args},
-{"config","Configure Sentinel","O(1)","6.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SENTINEL,SENTINEL_CONFIG_History,SENTINEL_CONFIG_tips,sentinelCommand,-3,CMD_ADMIN|CMD_SENTINEL|CMD_ONLY_SENTINEL,0,.args=SENTINEL_CONFIG_Args},
+{"config","Configure Sentinel","O(1)","6.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SENTINEL,SENTINEL_CONFIG_History,SENTINEL_CONFIG_tips,sentinelCommand,-4,CMD_ADMIN|CMD_SENTINEL|CMD_ONLY_SENTINEL,0,.args=SENTINEL_CONFIG_Args},
 {"debug","List or update the current configurable parameters","O(N) where N is the number of configurable parameters","7.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SENTINEL,SENTINEL_DEBUG_History,SENTINEL_DEBUG_tips,sentinelCommand,-2,CMD_ADMIN|CMD_SENTINEL|CMD_ONLY_SENTINEL,0,.args=SENTINEL_DEBUG_Args},
 {"failover","Force a failover",NULL,"2.8.4",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SENTINEL,SENTINEL_FAILOVER_History,SENTINEL_FAILOVER_tips,sentinelCommand,3,CMD_ADMIN|CMD_SENTINEL|CMD_ONLY_SENTINEL,0,.args=SENTINEL_FAILOVER_Args},
 {"flushconfig","Rewrite configuration file","O(1)","2.8.4",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SENTINEL,SENTINEL_FLUSHCONFIG_History,SENTINEL_FLUSHCONFIG_tips,sentinelCommand,2,CMD_ADMIN|CMD_SENTINEL|CMD_ONLY_SENTINEL,0},
@@ -4091,7 +4106,10 @@ struct redisCommandArg ACL_GETUSER_Args[] = {
 /********** ACL LOG ********************/
 
 /* ACL LOG history */
-#define ACL_LOG_History NULL
+commandHistory ACL_LOG_History[] = {
+{"7.2.0","Added entry ID, timestamp created, and timestamp last updated."},
+{0}
+};
 
 /* ACL LOG tips */
 #define ACL_LOG_tips NULL
@@ -5890,7 +5908,10 @@ struct redisCommandArg ZRANGESTORE_Args[] = {
 /********** ZRANK ********************/
 
 /* ZRANK history */
-#define ZRANK_History NULL
+commandHistory ZRANK_History[] = {
+{"7.2.0","Added the optional `WITHSCORE` argument."},
+{0}
+};
 
 /* ZRANK tips */
 #define ZRANK_tips NULL
@@ -5899,6 +5920,7 @@ struct redisCommandArg ZRANGESTORE_Args[] = {
 struct redisCommandArg ZRANK_Args[] = {
 {"key",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
 {"member",ARG_TYPE_STRING,-1,NULL,NULL,NULL,CMD_ARG_NONE},
+{"withscore",ARG_TYPE_PURE_TOKEN,-1,"WITHSCORE",NULL,NULL,CMD_ARG_OPTIONAL},
 {0}
 };
 
@@ -6040,7 +6062,10 @@ struct redisCommandArg ZREVRANGEBYSCORE_Args[] = {
 /********** ZREVRANK ********************/
 
 /* ZREVRANK history */
-#define ZREVRANK_History NULL
+commandHistory ZREVRANK_History[] = {
+{"7.2.0","Added the optional `WITHSCORE` argument."},
+{0}
+};
 
 /* ZREVRANK tips */
 #define ZREVRANK_tips NULL
@@ -6049,6 +6074,7 @@ struct redisCommandArg ZREVRANGEBYSCORE_Args[] = {
 struct redisCommandArg ZREVRANK_Args[] = {
 {"key",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
 {"member",ARG_TYPE_STRING,-1,NULL,NULL,NULL,CMD_ARG_NONE},
+{"withscore",ARG_TYPE_PURE_TOKEN,-1,"WITHSCORE",NULL,NULL,CMD_ARG_OPTIONAL},
 {0}
 };
 
@@ -6656,8 +6682,8 @@ commandHistory XSETID_History[] = {
 struct redisCommandArg XSETID_Args[] = {
 {"key",ARG_TYPE_KEY,0,NULL,NULL,NULL,CMD_ARG_NONE},
 {"last-id",ARG_TYPE_STRING,-1,NULL,NULL,NULL,CMD_ARG_NONE},
-{"entries-added",ARG_TYPE_INTEGER,-1,"ENTRIESADDED",NULL,NULL,CMD_ARG_OPTIONAL},
-{"max-deleted-id",ARG_TYPE_STRING,-1,"MAXDELETEDID",NULL,NULL,CMD_ARG_OPTIONAL},
+{"entries-added",ARG_TYPE_INTEGER,-1,"ENTRIESADDED",NULL,"7.0.0",CMD_ARG_OPTIONAL},
+{"max-deleted-id",ARG_TYPE_STRING,-1,"MAXDELETEDID",NULL,"7.0.0",CMD_ARG_OPTIONAL},
 {0}
 };
 
@@ -7164,7 +7190,7 @@ struct redisCommand redisCommandTable[] = {
 {"echo","Echo the given string","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CONNECTION,ECHO_History,ECHO_tips,echoCommand,2,CMD_LOADING|CMD_STALE|CMD_FAST,ACL_CATEGORY_CONNECTION,.args=ECHO_Args},
 {"hello","Handshake with Redis","O(1)","6.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CONNECTION,HELLO_History,HELLO_tips,helloCommand,-1,CMD_NOSCRIPT|CMD_LOADING|CMD_STALE|CMD_FAST|CMD_NO_AUTH|CMD_SENTINEL|CMD_ALLOW_BUSY,ACL_CATEGORY_CONNECTION,.args=HELLO_Args},
 {"ping","Ping the server","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CONNECTION,PING_History,PING_tips,pingCommand,-1,CMD_FAST|CMD_SENTINEL,ACL_CATEGORY_CONNECTION,.args=PING_Args},
-{"quit","Close the connection","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CONNECTION,QUIT_History,QUIT_tips,quitCommand,-1,CMD_ALLOW_BUSY|CMD_NOSCRIPT|CMD_LOADING|CMD_STALE|CMD_FAST|CMD_NO_AUTH,ACL_CATEGORY_CONNECTION},
+{"quit","Close the connection","O(1)","1.0.0",CMD_DOC_DEPRECATED,"just closing the connection","7.2.0",COMMAND_GROUP_CONNECTION,QUIT_History,QUIT_tips,quitCommand,-1,CMD_ALLOW_BUSY|CMD_NOSCRIPT|CMD_LOADING|CMD_STALE|CMD_FAST|CMD_NO_AUTH,ACL_CATEGORY_CONNECTION},
 {"reset","Reset the connection","O(1)","6.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CONNECTION,RESET_History,RESET_tips,resetCommand,1,CMD_NOSCRIPT|CMD_LOADING|CMD_STALE|CMD_FAST|CMD_NO_AUTH|CMD_ALLOW_BUSY,ACL_CATEGORY_CONNECTION},
 {"select","Change the selected database for the current connection","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_CONNECTION,SELECT_History,SELECT_tips,selectCommand,2,CMD_LOADING|CMD_STALE|CMD_FAST,ACL_CATEGORY_CONNECTION,.args=SELECT_Args},
 /* generic */
@@ -7184,11 +7210,11 @@ struct redisCommand redisCommandTable[] = {
 {"pexpireat","Set the expiration for a key as a UNIX timestamp specified in milliseconds","O(1)","2.6.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,PEXPIREAT_History,PEXPIREAT_tips,pexpireatCommand,-3,CMD_WRITE|CMD_FAST,ACL_CATEGORY_KEYSPACE,{{NULL,CMD_KEY_RW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=PEXPIREAT_Args},
 {"pexpiretime","Get the expiration Unix timestamp for a key in milliseconds","O(1)","7.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,PEXPIRETIME_History,PEXPIRETIME_tips,pexpiretimeCommand,2,CMD_READONLY|CMD_FAST,ACL_CATEGORY_KEYSPACE,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=PEXPIRETIME_Args},
 {"pttl","Get the time to live for a key in milliseconds","O(1)","2.6.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,PTTL_History,PTTL_tips,pttlCommand,2,CMD_READONLY|CMD_FAST,ACL_CATEGORY_KEYSPACE,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=PTTL_Args},
-{"randomkey","Return a random key from the keyspace","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,RANDOMKEY_History,RANDOMKEY_tips,randomkeyCommand,1,CMD_READONLY,ACL_CATEGORY_KEYSPACE},
+{"randomkey","Return a random key from the keyspace","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,RANDOMKEY_History,RANDOMKEY_tips,randomkeyCommand,1,CMD_READONLY|CMD_TOUCHES_ARBITRARY_KEYS,ACL_CATEGORY_KEYSPACE},
 {"rename","Rename a key","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,RENAME_History,RENAME_tips,renameCommand,3,CMD_WRITE,ACL_CATEGORY_KEYSPACE,{{NULL,CMD_KEY_RW|CMD_KEY_ACCESS|CMD_KEY_DELETE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}},{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={2},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=RENAME_Args},
 {"renamenx","Rename a key, only if the new key does not exist","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,RENAMENX_History,RENAMENX_tips,renamenxCommand,3,CMD_WRITE|CMD_FAST,ACL_CATEGORY_KEYSPACE,{{NULL,CMD_KEY_RW|CMD_KEY_ACCESS|CMD_KEY_DELETE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}},{NULL,CMD_KEY_OW|CMD_KEY_INSERT,KSPEC_BS_INDEX,.bs.index={2},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=RENAMENX_Args},
 {"restore","Create a key using the provided serialized value, previously obtained using DUMP.","O(1) to create the new key and additional O(N*M) to reconstruct the serialized value, where N is the number of Redis objects composing the value and M their average size. For small string values the time complexity is thus O(1)+O(1*M) where M is small, so simply O(1). However for sorted set values the complexity is O(N*M*log(N)) because inserting values into sorted sets is O(log(N)).","2.6.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,RESTORE_History,RESTORE_tips,restoreCommand,-4,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_KEYSPACE|ACL_CATEGORY_DANGEROUS,{{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=RESTORE_Args},
-{"scan","Incrementally iterate the keys space","O(1) for every call. O(N) for a complete iteration, including enough command calls for the cursor to return back to 0. N is the number of elements inside the collection.","2.8.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,SCAN_History,SCAN_tips,scanCommand,-2,CMD_READONLY,ACL_CATEGORY_KEYSPACE,.args=SCAN_Args},
+{"scan","Incrementally iterate the keys space","O(1) for every call. O(N) for a complete iteration, including enough command calls for the cursor to return back to 0. N is the number of elements inside the collection.","2.8.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,SCAN_History,SCAN_tips,scanCommand,-2,CMD_READONLY|CMD_TOUCHES_ARBITRARY_KEYS,ACL_CATEGORY_KEYSPACE,.args=SCAN_Args},
 {"sort","Sort the elements in a list, set or sorted set","O(N+M*log(M)) where N is the number of elements in the list or set to sort, and M the number of returned elements. When the elements are not sorted, complexity is O(N).","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,SORT_History,SORT_tips,sortCommand,-2,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_SET|ACL_CATEGORY_SORTEDSET|ACL_CATEGORY_LIST|ACL_CATEGORY_DANGEROUS,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}},{"For the optional BY/GET keyword. It is marked 'unknown' because the key names derive from the content of the key we sort",CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_UNKNOWN,{{0}},KSPEC_FK_UNKNOWN,{{0}}},{"For the optional STORE keyword. It is marked 'unknown' because the keyword can appear anywhere in the argument array",CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_UNKNOWN,{{0}},KSPEC_FK_UNKNOWN,{{0}}}},sortGetKeys,.args=SORT_Args},
 {"sort_ro","Sort the elements in a list, set or sorted set. Read-only variant of SORT.","O(N+M*log(M)) where N is the number of elements in the list or set to sort, and M the number of returned elements. When the elements are not sorted, complexity is O(N).","7.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,SORT_RO_History,SORT_RO_tips,sortroCommand,-2,CMD_READONLY,ACL_CATEGORY_SET|ACL_CATEGORY_SORTEDSET|ACL_CATEGORY_LIST|ACL_CATEGORY_DANGEROUS,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}},{"For the optional BY/GET keyword. It is marked 'unknown' because the key names derive from the content of the key we sort",CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_UNKNOWN,{{0}},KSPEC_FK_UNKNOWN,{{0}}}},sortROGetKeys,.args=SORT_RO_Args},
 {"touch","Alters the last access time of a key(s). Returns the number of existing keys specified.","O(N) where N is the number of keys that will be touched.","3.2.1",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_GENERIC,TOUCH_History,TOUCH_tips,touchCommand,-2,CMD_READONLY|CMD_FAST,ACL_CATEGORY_KEYSPACE,{{NULL,CMD_KEY_RO,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={-1,1,0}}},.args=TOUCH_Args},
@@ -7345,7 +7371,7 @@ struct redisCommand redisCommandTable[] = {
 {"zrangebylex","Return a range of members in a sorted set, by lexicographical range","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements being returned. If M is constant (e.g. always asking for the first 10 elements with LIMIT), you can consider it O(log(N)).","2.8.9",CMD_DOC_DEPRECATED,"`ZRANGE` with the `BYLEX` argument","6.2.0",COMMAND_GROUP_SORTED_SET,ZRANGEBYLEX_History,ZRANGEBYLEX_tips,zrangebylexCommand,-4,CMD_READONLY,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZRANGEBYLEX_Args},
 {"zrangebyscore","Return a range of members in a sorted set, by score","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements being returned. If M is constant (e.g. always asking for the first 10 elements with LIMIT), you can consider it O(log(N)).","1.0.5",CMD_DOC_DEPRECATED,"`ZRANGE` with the `BYSCORE` argument","6.2.0",COMMAND_GROUP_SORTED_SET,ZRANGEBYSCORE_History,ZRANGEBYSCORE_tips,zrangebyscoreCommand,-4,CMD_READONLY,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZRANGEBYSCORE_Args},
 {"zrangestore","Store a range of members from sorted set into another key","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements stored into the destination key.","6.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZRANGESTORE_History,ZRANGESTORE_tips,zrangestoreCommand,-5,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}},{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={2},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZRANGESTORE_Args},
-{"zrank","Determine the index of a member in a sorted set","O(log(N))","2.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZRANK_History,ZRANK_tips,zrankCommand,3,CMD_READONLY|CMD_FAST,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZRANK_Args},
+{"zrank","Determine the index of a member in a sorted set","O(log(N))","2.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZRANK_History,ZRANK_tips,zrankCommand,-3,CMD_READONLY|CMD_FAST,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZRANK_Args},
 {"zrem","Remove one or more members from a sorted set","O(M*log(N)) with N being the number of elements in the sorted set and M the number of elements to be removed.","1.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZREM_History,ZREM_tips,zremCommand,-3,CMD_WRITE|CMD_FAST,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RW|CMD_KEY_DELETE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREM_Args},
 {"zremrangebylex","Remove all members in a sorted set between the given lexicographical range","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements removed by the operation.","2.8.9",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZREMRANGEBYLEX_History,ZREMRANGEBYLEX_tips,zremrangebylexCommand,4,CMD_WRITE,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RW|CMD_KEY_DELETE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREMRANGEBYLEX_Args},
 {"zremrangebyrank","Remove all members in a sorted set within the given indexes","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements removed by the operation.","2.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZREMRANGEBYRANK_History,ZREMRANGEBYRANK_tips,zremrangebyrankCommand,4,CMD_WRITE,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RW|CMD_KEY_DELETE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREMRANGEBYRANK_Args},
@@ -7353,7 +7379,7 @@ struct redisCommand redisCommandTable[] = {
 {"zrevrange","Return a range of members in a sorted set, by index, with scores ordered from high to low","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements returned.","1.2.0",CMD_DOC_DEPRECATED,"`ZRANGE` with the `REV` argument","6.2.0",COMMAND_GROUP_SORTED_SET,ZREVRANGE_History,ZREVRANGE_tips,zrevrangeCommand,-4,CMD_READONLY,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREVRANGE_Args},
 {"zrevrangebylex","Return a range of members in a sorted set, by lexicographical range, ordered from higher to lower strings.","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements being returned. If M is constant (e.g. always asking for the first 10 elements with LIMIT), you can consider it O(log(N)).","2.8.9",CMD_DOC_DEPRECATED,"`ZRANGE` with the `REV` and `BYLEX` arguments","6.2.0",COMMAND_GROUP_SORTED_SET,ZREVRANGEBYLEX_History,ZREVRANGEBYLEX_tips,zrevrangebylexCommand,-4,CMD_READONLY,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREVRANGEBYLEX_Args},
 {"zrevrangebyscore","Return a range of members in a sorted set, by score, with scores ordered from high to low","O(log(N)+M) with N being the number of elements in the sorted set and M the number of elements being returned. If M is constant (e.g. always asking for the first 10 elements with LIMIT), you can consider it O(log(N)).","2.2.0",CMD_DOC_DEPRECATED,"`ZRANGE` with the `REV` and `BYSCORE` arguments","6.2.0",COMMAND_GROUP_SORTED_SET,ZREVRANGEBYSCORE_History,ZREVRANGEBYSCORE_tips,zrevrangebyscoreCommand,-4,CMD_READONLY,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREVRANGEBYSCORE_Args},
-{"zrevrank","Determine the index of a member in a sorted set, with scores ordered from high to low","O(log(N))","2.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZREVRANK_History,ZREVRANK_tips,zrevrankCommand,3,CMD_READONLY|CMD_FAST,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREVRANK_Args},
+{"zrevrank","Determine the index of a member in a sorted set, with scores ordered from high to low","O(log(N))","2.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZREVRANK_History,ZREVRANK_tips,zrevrankCommand,-3,CMD_READONLY|CMD_FAST,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZREVRANK_Args},
 {"zscan","Incrementally iterate sorted sets elements and associated scores","O(1) for every call. O(N) for a complete iteration, including enough command calls for the cursor to return back to 0. N is the number of elements inside the collection.","2.8.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZSCAN_History,ZSCAN_tips,zscanCommand,-3,CMD_READONLY,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZSCAN_Args},
 {"zscore","Get the score associated with the given member in a sorted set","O(1)","1.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZSCORE_History,ZSCORE_tips,zscoreCommand,3,CMD_READONLY|CMD_FAST,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=ZSCORE_Args},
 {"zunion","Add multiple sorted sets","O(N)+O(M*log(M)) with N being the sum of the sizes of the input sorted sets, and M being the number of elements in the resulting sorted set.","6.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_SORTED_SET,ZUNION_History,ZUNION_tips,zunionCommand,-3,CMD_READONLY,ACL_CATEGORY_SORTEDSET,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_KEYNUM,.fk.keynum={0,1,1}}},zunionInterDiffGetKeys,.args=ZUNION_Args},
@@ -7390,10 +7416,10 @@ struct redisCommand redisCommandTable[] = {
 {"mget","Get the values of all the given keys","O(N) where N is the number of keys to retrieve.","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,MGET_History,MGET_tips,mgetCommand,-2,CMD_READONLY|CMD_FAST,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={-1,1,0}}},.args=MGET_Args},
 {"mset","Set multiple keys to multiple values","O(N) where N is the number of keys to set.","1.0.1",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,MSET_History,MSET_tips,msetCommand,-3,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={-1,2,0}}},.args=MSET_Args},
 {"msetnx","Set multiple keys to multiple values, only if none of the keys exist","O(N) where N is the number of keys to set.","1.0.1",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,MSETNX_History,MSETNX_tips,msetnxCommand,-3,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_INSERT,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={-1,2,0}}},.args=MSETNX_Args},
-{"psetex","Set the value and expiration in milliseconds of a key","O(1)","2.6.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,PSETEX_History,PSETEX_tips,psetexCommand,4,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=PSETEX_Args},
+{"psetex","Set the value and expiration in milliseconds of a key","O(1)","2.6.0",CMD_DOC_DEPRECATED,"`SET` with the `PX` argument","2.6.12",COMMAND_GROUP_STRING,PSETEX_History,PSETEX_tips,psetexCommand,4,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=PSETEX_Args},
 {"set","Set the string value of a key","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,SET_History,SET_tips,setCommand,-3,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{"RW and ACCESS due to the optional `GET` argument",CMD_KEY_RW|CMD_KEY_ACCESS|CMD_KEY_UPDATE|CMD_KEY_VARIABLE_FLAGS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},setGetKeys,.args=SET_Args},
-{"setex","Set the value and expiration of a key","O(1)","2.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,SETEX_History,SETEX_tips,setexCommand,4,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=SETEX_Args},
-{"setnx","Set the value of a key, only if the key does not exist","O(1)","1.0.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,SETNX_History,SETNX_tips,setnxCommand,3,CMD_WRITE|CMD_DENYOOM|CMD_FAST,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_INSERT,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=SETNX_Args},
+{"setex","Set the value and expiration of a key","O(1)","2.0.0",CMD_DOC_DEPRECATED,"`SET` with the `EX` argument","2.6.12",COMMAND_GROUP_STRING,SETEX_History,SETEX_tips,setexCommand,4,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=SETEX_Args},
+{"setnx","Set the value of a key, only if the key does not exist","O(1)","1.0.0",CMD_DOC_DEPRECATED,"`SET` with the `NX` argument","2.6.12",COMMAND_GROUP_STRING,SETNX_History,SETNX_tips,setnxCommand,3,CMD_WRITE|CMD_DENYOOM|CMD_FAST,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_OW|CMD_KEY_INSERT,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=SETNX_Args},
 {"setrange","Overwrite part of a string at key starting at the specified offset","O(1), not counting the time taken to copy the new string in place. Usually, this string is very small so the amortized complexity is O(1). Otherwise, complexity is O(M) with M being the length of the value argument.","2.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,SETRANGE_History,SETRANGE_tips,setrangeCommand,4,CMD_WRITE|CMD_DENYOOM,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_RW|CMD_KEY_UPDATE,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=SETRANGE_Args},
 {"strlen","Get the length of the value stored in a key","O(1)","2.2.0",CMD_DOC_NONE,NULL,NULL,COMMAND_GROUP_STRING,STRLEN_History,STRLEN_tips,strlenCommand,2,CMD_READONLY|CMD_FAST,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_RO,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=STRLEN_Args},
 {"substr","Get a substring of the string stored at a key","O(N) where N is the length of the returned string. The complexity is ultimately determined by the returned length, but because creating a substring from an existing string is very cheap, it can be considered O(1) for small strings.","1.0.0",CMD_DOC_DEPRECATED,"`GETRANGE`","2.0.0",COMMAND_GROUP_STRING,SUBSTR_History,SUBSTR_tips,getrangeCommand,4,CMD_READONLY,ACL_CATEGORY_STRING,{{NULL,CMD_KEY_RO|CMD_KEY_ACCESS,KSPEC_BS_INDEX,.bs.index={1},KSPEC_FK_RANGE,.fk.range={0,1,0}}},.args=SUBSTR_Args},

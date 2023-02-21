@@ -111,7 +111,7 @@ int bg_unlink(const char *filename) {
             errno = old_errno;
             return -1;
         }
-        bioCreateCloseJob(fd, 0);
+        bioCreateCloseJob(fd, 0, 0);
         return 0; /* Success. */
     }
 }
@@ -528,7 +528,7 @@ void showLatestBacklog(void) {
 
     /* Finally log such bytes: this is vital debugging info to
      * understand what happened. */
-    serverLog(LL_WARNING,"Latest backlog is: '%s'", dump);
+    serverLog(LL_NOTICE,"Latest backlog is: '%s'", dump);
     sdsfree(dump);
 }
 
@@ -593,7 +593,6 @@ void replicationFeedMonitors(client *c, list *monitors, int dictid, robj **argv,
     while((ln = listNext(&li))) {
         client *monitor = ln->value;
         addReply(monitor,cmdobj);
-        updateClientMemUsage(c);
     }
     decrRefCount(cmdobj);
 }
@@ -859,8 +858,10 @@ int startBgsaveForReplication(int mincapa, int req) {
     if (rsiptr) {
         if (socket_target)
             retval = rdbSaveToSlavesSockets(req,rsiptr);
-        else
-            retval = rdbSaveBackground(req,server.rdb_filename,rsiptr);
+        else {
+            /* Keep the page cache since it'll get used soon */
+            retval = rdbSaveBackground(req,server.rdb_filename,rsiptr,RDBFLAGS_KEEP_CACHE);
+        }
     } else {
         serverLog(LL_WARNING,"BGSAVE for replication: replication information not available, can't generate the RDB file right now. Try later.");
         retval = C_ERR;
@@ -924,7 +925,7 @@ void syncCommand(client *c) {
     if (c->argc > 3 && !strcasecmp(c->argv[0]->ptr,"psync") && 
         !strcasecmp(c->argv[3]->ptr,"failover"))
     {
-        serverLog(LL_WARNING, "Failover request received for replid %s.",
+        serverLog(LL_NOTICE, "Failover request received for replid %s.",
             (unsigned char *)c->argv[1]->ptr);
         if (!server.masterhost) {
             addReplyError(c, "PSYNC FAILOVER can't be sent to a master.");
@@ -1351,6 +1352,29 @@ void removeRDBUsedToSyncReplicas(void) {
     }
 }
 
+/* Close the repldbfd and reclaim the page cache if the client hold
+ * the last reference to replication DB */
+void closeRepldbfd(client *myself) {
+    listNode *ln;
+    listIter li;
+    int reclaim = 1;
+    listRewind(server.slaves,&li);
+    while((ln = listNext(&li))) {
+        client *slave = ln->value;
+        if (slave != myself && slave->replstate == SLAVE_STATE_SEND_BULK) {
+            reclaim = 0;
+            break;
+        }
+    }
+
+    if (reclaim) {
+        bioCreateCloseJob(myself->repldbfd, 0, 1);
+    } else {
+        close(myself->repldbfd);
+    }
+    myself->repldbfd = -1;
+}
+
 void sendBulkToSlave(connection *conn) {
     client *slave = connGetPrivateData(conn);
     char buf[PROTO_IOBUF_LEN];
@@ -1399,8 +1423,7 @@ void sendBulkToSlave(connection *conn) {
     slave->repldboff += nwritten;
     atomicIncr(server.stat_net_repl_output_bytes, nwritten);
     if (slave->repldboff == slave->repldbsize) {
-        close(slave->repldbfd);
-        slave->repldbfd = -1;
+        closeRepldbfd(slave);
         connSetWriteHandler(slave->conn,NULL);
         if (!replicaPutOnline(slave)) {
             freeClient(slave);
@@ -1492,7 +1515,7 @@ void rdbPipeReadHandler(struct aeEventLoop *eventLoop, int fd, void *clientData,
                     continue;
                 stillUp++;
             }
-            serverLog(LL_WARNING,"Diskless rdb transfer, done reading from pipe, %d replicas still up.", stillUp);
+            serverLog(LL_NOTICE,"Diskless rdb transfer, done reading from pipe, %d replicas still up.", stillUp);
             /* Now that the replicas have finished reading, notify the child that it's safe to exit. 
              * When the server detects the child has exited, it can mark the replica as online, and
              * start streaming the replication buffers. */
@@ -1670,7 +1693,7 @@ void shiftReplicationId(void) {
      * byte, and is asking for the new bytes starting at offset 51. */
     server.second_replid_offset = server.master_repl_offset+1;
     changeReplicationId();
-    serverLog(LL_WARNING,"Setting secondary replication ID to %s, valid up to offset: %lld. New replication ID is %s", server.replid2, server.second_replid_offset, server.replid);
+    serverLog(LL_NOTICE,"Setting secondary replication ID to %s, valid up to offset: %lld. New replication ID is %s", server.replid2, server.second_replid_offset, server.replid);
 }
 
 /* ----------------------------------- SLAVE -------------------------------- */
@@ -1771,13 +1794,13 @@ static int useDisklessLoad() {
     if (enabled) {
         /* Check all modules handle read errors, otherwise it's not safe to use diskless load. */
         if (!moduleAllDatatypesHandleErrors()) {
-            serverLog(LL_WARNING,
+            serverLog(LL_NOTICE,
                 "Skipping diskless-load because there are modules that don't handle read errors.");
             enabled = 0;
         }
         /* Check all modules handle async replication, otherwise it's not safe to use diskless load. */
         else if (server.repl_diskless_load == REPL_DISKLESS_LOAD_SWAPDB && !moduleAllModulesHandleReplAsyncLoad()) {
-            serverLog(LL_WARNING,
+            serverLog(LL_NOTICE,
                 "Skipping diskless-load because there are modules that are not aware of async replication.");
             enabled = 0;
         }
@@ -1837,7 +1860,7 @@ void readSyncBulkPayload(connection *conn) {
         if (nread == -1) {
             serverLog(LL_WARNING,
                 "I/O error reading bulk count from MASTER: %s",
-                strerror(errno));
+                connGetLastError(conn));
             goto error;
         } else {
             /* nread here is returned by connSyncReadLine(), which calls syncReadLine() and
@@ -1909,7 +1932,7 @@ void readSyncBulkPayload(connection *conn) {
                 return;
             }
             serverLog(LL_WARNING,"I/O error trying to sync with MASTER: %s",
-                (nread == -1) ? strerror(errno) : "connection lost");
+                (nread == -1) ? connGetLastError(conn) : "connection lost");
             cancelReplicationHandshake(1);
             return;
         }
@@ -2165,7 +2188,7 @@ void readSyncBulkPayload(connection *conn) {
             return;
         }
         /* Close old rdb asynchronously. */
-        if (old_rdb_fd != -1) bioCreateCloseJob(old_rdb_fd, 0);
+        if (old_rdb_fd != -1) bioCreateCloseJob(old_rdb_fd, 0, 0);
 
         /* Sync the directory to ensure rename is persisted */
         if (fsyncFileDir(server.rdb_filename) == -1) {
@@ -2202,7 +2225,6 @@ void readSyncBulkPayload(connection *conn) {
         }
 
         zfree(server.repl_transfer_tmpfile);
-        close(server.repl_transfer_fd);
         server.repl_transfer_fd = -1;
         server.repl_transfer_tmpfile = NULL;
     }
@@ -2254,7 +2276,7 @@ char *receiveSynchronousResponse(connection *conn) {
     /* Read the reply from the server. */
     if (connSyncReadLine(conn,buf,sizeof(buf),server.repl_syncio_timeout*1000) == -1)
     {
-        serverLog(LL_WARNING, "Failed to read response from the server: %s", strerror(errno));
+        serverLog(LL_WARNING, "Failed to read response from the server: %s", connGetLastError(conn));
         return NULL;
     }
     server.repl_transfer_lastio = server.unixtime;
@@ -2505,7 +2527,7 @@ int slaveTryPartialResynchronization(connection *conn, int read_reply) {
 
             if (strcmp(new,server.cached_master->replid)) {
                 /* Master ID changed. */
-                serverLog(LL_WARNING,"Master replication ID changed to %s",new);
+                serverLog(LL_NOTICE,"Master replication ID changed to %s",new);
 
                 /* Set the old ID as our ID2, up to the current offset+1. */
                 memcpy(server.replid2,server.cached_master->replid,
@@ -2815,7 +2837,7 @@ void syncWithMaster(connection *conn) {
         serverLog(LL_NOTICE,"Retrying with SYNC...");
         if (connSyncWrite(conn,"SYNC\r\n",6,server.repl_syncio_timeout*1000) == -1) {
             serverLog(LL_WARNING,"I/O error writing to MASTER: %s",
-                strerror(errno));
+                connGetLastError(conn));
             goto error;
         }
     }
@@ -3481,11 +3503,7 @@ void waitCommand(client *c) {
 
     /* Otherwise block the client and put it into our list of clients
      * waiting for ack from slaves. */
-    c->bpop.timeout = timeout;
-    c->bpop.reploffset = offset;
-    c->bpop.numreplicas = numreplicas;
-    listAddNodeHead(server.clients_waiting_acks,c);
-    blockClient(c,BLOCKED_WAIT);
+    blockForReplication(c,timeout,offset,numreplicas);
 
     /* Make sure that the server will send an ACK request to all the slaves
      * before returning to the event loop. */
@@ -3519,16 +3537,16 @@ void processClientsWaitingReplicas(void) {
          * offset and number of replicas, we remember it so the next client
          * may be unblocked without calling replicationCountAcksByOffset()
          * if the requested offset / replicas were equal or less. */
-        if (last_offset && last_offset >= c->bpop.reploffset &&
-                           last_numreplicas >= c->bpop.numreplicas)
+        if (last_offset && last_offset >= c->bstate.reploffset &&
+                           last_numreplicas >= c->bstate.numreplicas)
         {
             unblockClient(c);
             addReplyLongLong(c,last_numreplicas);
         } else {
-            int numreplicas = replicationCountAcksByOffset(c->bpop.reploffset);
+            int numreplicas = replicationCountAcksByOffset(c->bstate.reploffset);
 
-            if (numreplicas >= c->bpop.numreplicas) {
-                last_offset = c->bpop.reploffset;
+            if (numreplicas >= c->bstate.numreplicas) {
+                last_offset = c->bstate.reploffset;
                 last_numreplicas = numreplicas;
                 unblockClient(c);
                 addReplyLongLong(c,numreplicas);
@@ -3627,7 +3645,7 @@ void replicationCron(void) {
             ((server.cluster_enabled &&
               server.cluster->mf_end) ||
             server.failover_end_time) &&
-            checkClientPauseTimeoutAndReturnIfPaused();
+            isPausedActionsWithUpdate(PAUSE_ACTION_REPLICA);
 
         if (!manual_failover_in_progress) {
             ping_argv[0] = shared.ping;
@@ -3865,7 +3883,7 @@ void clearFailoverState() {
     server.target_replica_host = NULL;
     server.target_replica_port = 0;
     server.failover_state = NO_FAILOVER;
-    unpauseClients(PAUSE_DURING_FAILOVER);
+    unpauseActions(PAUSE_DURING_FAILOVER);
 }
 
 /* Abort an ongoing failover if one is going on. */
@@ -4014,7 +4032,9 @@ void failoverCommand(client *c) {
     server.force_failover = force_flag;
     server.failover_state = FAILOVER_WAIT_FOR_SYNC;
     /* Cluster failover will unpause eventually */
-    pauseClients(PAUSE_DURING_FAILOVER, LLONG_MAX, CLIENT_PAUSE_WRITE);
+    pauseActions(PAUSE_DURING_FAILOVER,
+                 LLONG_MAX,
+                 PAUSE_ACTIONS_CLIENT_WRITE_SET);
     addReply(c,shared.ok);
 }
 
