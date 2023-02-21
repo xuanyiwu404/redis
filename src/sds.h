@@ -49,8 +49,8 @@ struct __attribute__ ((__packed__)) sdshdr5 {
     char buf[];
 };
 struct __attribute__ ((__packed__)) sdshdr8 {
-    uint8_t len; /* used */
-    uint8_t alloc; /* excluding the header and null terminator */
+    uint8_t len; /* used */                                                 //已用空间 --easonywu
+    uint8_t alloc; /* excluding the header and null terminator */           //总空间，想要获取可用空间，需要alloc-len --easonywu
     unsigned char flags; /* 3 lsb of type, 5 unused bits */
     char buf[];
 };

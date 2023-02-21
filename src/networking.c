@@ -125,7 +125,7 @@ client *createClient(connection *conn) {
      * in the context of a client. When commands are executed in other
      * contexts (for instance a Lua script) we need a non connected client. */
     if (conn) {
-        connEnableTcpNoDelay(conn);
+        connEnableTcpNoDelay(conn);         //关闭nagle算法，避免第一次写操作的包发送成功，但是对端延迟ack，nagle导致无法发送第二个写操作包，只有对端发送超时ack后才继续发送，造成延迟  --easonywu
         if (server.tcpkeepalive)
             connKeepAlive(conn,server.tcpkeepalive);
         connSetReadHandler(conn, readQueryFromClient);
