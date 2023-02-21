@@ -2494,8 +2494,8 @@ void makeThreadKillable(void) {
 void initServer(void) {
     int j;
 
-    signal(SIGHUP, SIG_IGN);
-    signal(SIGPIPE, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);        // 当控制台被关闭时，系统会向相应进程发送SIGHUP信号，默认action为exit，即进程退出；本操作能够忽略这个信号 --easonywu
+    signal(SIGPIPE, SIG_IGN);       // 如果对端写连接close了，本地端在第二次写的时候会收到SIGPIPE信号，导致本地进程退出；本操作能够忽略这个信号 --easonywu
     setupSignalHandlers();
     makeThreadKillable();
 
